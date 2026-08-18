@@ -18,6 +18,12 @@ jobs:
     steps:
       - name: RepoCheckout
         uses: actions/checkout@v3
+      
+      - name: Install JDK11
+        uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '11'
 
       - name: Install JMeter
         run: |
@@ -27,18 +33,19 @@ jobs:
           unzip apache-jmeter-5.6.3.zip
           mv apache-jmeter-5.6.3 apache-jmeter
 
-      - name: Install Plugins Manager
-        run: |
-          wget https://jmeter-plugins.org/get/ -O apache-jmeter/lib/ext/plugins-manager.jar
-          ls -la apache-jmeter/lib/ext/
-          chmod +x apache-jmeter/bin/PluginsManagerCMD.sh
-          apache-jmeter/bin/PluginsManagerCMD.sh install \
-          jpgc-standard \
-          jpgc-dummy \
-          jpgc-functions \
-          jpgc-graphs-basic \
-          jpgc-graphs-additional \
-          jpgc-cmd
+      # - name: Install Plugins Manager
+      #   run: |
+      #     wget https://jmeter-plugins.org/get/ -O apache-jmeter/lib/ext/plugins-manager.jar
+      #     ls -la apache-jmeter/lib/ext/
+      #     ls -la apache-jmeter/bin/
+      #     chmod +x apache-jmeter/bin/PluginsManagerCMD.sh
+      #     apache-jmeter/bin/PluginsManagerCMD.sh install \
+      #     jpgc-standard \
+      #     jpgc-dummy \
+      #     jpgc-functions \
+      #     jpgc-graphs-basic \
+      #     jpgc-graphs-additional \
+      #     jpgc-cmd
 
       - name: Generate Timestamp
         run: echo "TEST_RUN_ID=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
