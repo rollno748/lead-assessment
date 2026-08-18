@@ -1,0 +1,6 @@
+results/dashboard/
+results/*.jtl
+results/*.log
+!results/PLACEHOLDER
+jmeter.log
+scripts/jmeter.log
