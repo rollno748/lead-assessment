@@ -41,19 +41,19 @@ jobs:
           unzip apache-jmeter-5.6.3.zip
           mv apache-jmeter-5.6.3 apache-jmeter
 
-      - name: Install Plugins Manager
-        run: |
-          wget https://jmeter-plugins.org/get/ -O apache-jmeter/lib/ext/plugins-manager.jar
-          apache-jmeter/bin/jmeter -n -h > /dev/null 2>&1 || true
-          ls -la apache-jmeter/bin/PluginsManagerCMD.sh
-          chmod +x apache-jmeter/bin/PluginsManagerCMD.sh
-          apache-jmeter/bin/PluginsManagerCMD.sh install \
-          jpgc-standard \
-          jpgc-dummy \
-          jpgc-functions \
-          jpgc-graphs-basic \
-          jpgc-graphs-additional \
-          jpgc-cmd
+      # - name: Install Plugins Manager
+      #   run: |
+      #     wget https://jmeter-plugins.org/get/ -O apache-jmeter/lib/ext/plugins-manager.jar
+      #     apache-jmeter/bin/jmeter -n -h > /dev/null 2>&1 || true
+      #     ls -la apache-jmeter/bin/PluginsManagerCMD.sh
+      #     chmod +x apache-jmeter/bin/PluginsManagerCMD.sh
+      #     apache-jmeter/bin/PluginsManagerCMD.sh install \
+      #     jpgc-standard \
+      #     jpgc-dummy \
+      #     jpgc-functions \
+      #     jpgc-graphs-basic \
+      #     jpgc-graphs-additional \
+      #     jpgc-cmd
 
       - name: Generate Timestamp
         run: echo "TEST_RUN_ID=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
