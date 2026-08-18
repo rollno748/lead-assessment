@@ -44,7 +44,8 @@ jobs:
       - name: Install Plugins Manager
         run: |
           wget https://jmeter-plugins.org/get/ -O apache-jmeter/lib/ext/plugins-manager.jar
-          java -cp apache-jmeter/lib/ext/plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller
+          apache-jmeter/bin/jmeter -n -h > /dev/null 2>&1 || true
+          ls -la apache-jmeter/bin/PluginsManagerCMD.sh
           chmod +x apache-jmeter/bin/PluginsManagerCMD.sh
           apache-jmeter/bin/PluginsManagerCMD.sh install \
           jpgc-standard \
