@@ -1,0 +1,86 @@
+name: Performance Workflow
+
+on: 
+  push: 
+    branches: [main, dev]
+  workflow_dispatch:
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        environment: [dev, qa, perf]
+
+    env:
+      SCRIPTS_PATH: 'scripts/jsonplaceholder-test.jmx'
+      
+    steps:
+      - name: RepoCheckout
+        uses: actions/checkout@v3
+
+      - name: Install JMeter
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget unzip
+          wget https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.zip
+          unzip apache-jmeter-5.6.3.zip
+          mv apache-jmeter-5.6.3 apache-jmeter
+
+      - name: Install Plugins Manager
+        run: |
+          wget https://jmeter-plugins.org/get/ -O plugins-manager.jar
+          mv plugins-manager.jar apache-jmeter/lib/ext/
+
+      - name: Install Plugins
+        run: |
+          apache-jmeter/bin/PluginsManagerCMD.sh install \
+          jpgc-standard \
+          jpgc-dummy \
+          jpgc-functions \
+          jpgc-graphs-basic \
+          jpgc-graphs-additional \
+          jpgc-cmd
+
+      - name: Generate Timestamp
+        run: echo "TEST_RUN_ID=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
+
+      - name: Run JMeter Test
+        run: |
+          mkdir -p results/dashboard/${TEST_RUN_ID}
+          apache-jmeter/bin/jmeter -n \
+            -t ${SCRIPTS_PATH} \
+            -q config/${{matrix.environment}}.properties \
+            -l results/results_${TEST_RUN_ID}.jtl \
+            -e -o results/dashboard/${TEST_RUN_ID}
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v3
+        with:
+          name: jmeter-results-${TEST_RUN_ID}
+          path: results/dashboard/${TEST_RUN_ID}
+
+      - name: Validate Performance Thresholds
+        run: |
+          STATS="results/dashboard/${TEST_RUN_ID}/statistics.json"
+          P95=$(jq '.Total.p95' $STATS)
+          ERRORS=$(jq '.Total.errorCount' $STATS)
+
+          echo "p95 latency: $P95 ms"
+          echo "errors: $ERRORS"
+
+          if (( $(echo "$P95 > 800" | bc -l) )); then
+            echo "❌ p95 latency above threshold"
+            exit 1
+          fi
+
+          if (( $ERRORS > 0 )); then
+            echo "❌ Errors detected"
+            exit 1
+          fi
+
+          echo "✅ Performance thresholds passed"
+
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
