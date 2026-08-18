@@ -2,16 +2,15 @@ name: Performance Workflow
 
 on: 
   push: 
-    branches: [master, dev]
+    branches: [master]
   workflow_dispatch:
 
 jobs:
   load-test:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
-        environment: [dev, qa, perf]
+        environment: [perf]
 
     env:
       SCRIPTS_PATH: 'scripts/jsonplaceholder-test.jmx'
