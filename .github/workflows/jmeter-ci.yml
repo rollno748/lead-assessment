@@ -25,10 +25,10 @@ jobs:
       
     steps:
       - name: RepoCheckout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       
       - name: Install JDK11
-        uses: actions/setup-java@v2
+        uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '11'
@@ -104,4 +104,4 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v2
+        uses: actions/deploy-pages@v4
