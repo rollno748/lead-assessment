@@ -2,7 +2,7 @@ name: Performance Workflow
 
 on: 
   push: 
-    branches: [main, dev]
+    branches: [master, dev]
   workflow_dispatch:
 
 jobs:
