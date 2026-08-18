@@ -13,6 +13,9 @@ on:
 jobs:
   load-test:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     strategy:
       matrix:
         environment: [perf]
@@ -38,19 +41,18 @@ jobs:
           unzip apache-jmeter-5.6.3.zip
           mv apache-jmeter-5.6.3 apache-jmeter
 
-      # - name: Install Plugins Manager
-      #   run: |
-      #     wget https://jmeter-plugins.org/get/ -O apache-jmeter/lib/ext/plugins-manager.jar
-      #     ls -la apache-jmeter/lib/ext/
-      #     ls -la apache-jmeter/bin/
-      #     chmod +x apache-jmeter/bin/PluginsManagerCMD.sh
-      #     apache-jmeter/bin/PluginsManagerCMD.sh install \
-      #     jpgc-standard \
-      #     jpgc-dummy \
-      #     jpgc-functions \
-      #     jpgc-graphs-basic \
-      #     jpgc-graphs-additional \
-      #     jpgc-cmd
+      - name: Install Plugins Manager
+        run: |
+          wget https://jmeter-plugins.org/get/ -O apache-jmeter/lib/ext/plugins-manager.jar
+          java -cp apache-jmeter/lib/ext/plugins-manager.jar org.jmeterplugins.repository.PluginManagerCMDInstaller
+          chmod +x apache-jmeter/bin/PluginsManagerCMD.sh
+          apache-jmeter/bin/PluginsManagerCMD.sh install \
+          jpgc-standard \
+          jpgc-dummy \
+          jpgc-functions \
+          jpgc-graphs-basic \
+          jpgc-graphs-additional \
+          jpgc-cmd
 
       - name: Generate Timestamp
         run: echo "TEST_RUN_ID=$(date +'%Y%m%d-%H%M%S')" >> $GITHUB_ENV
@@ -69,6 +71,14 @@ jobs:
         with:
           name: jmeter-results-${TEST_RUN_ID}
           path: results/dashboard/${TEST_RUN_ID}
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: results/dashboard/${{ env.TEST_RUN_ID }}
 
       - name: Validate Performance Thresholds
         run: |
@@ -92,4 +102,5 @@ jobs:
           echo "✅ Performance thresholds passed"
 
       - name: Deploy to GitHub Pages
+        id: deployment
         uses: actions/deploy-pages@v2
