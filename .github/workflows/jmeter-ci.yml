@@ -29,11 +29,9 @@ jobs:
 
       - name: Install Plugins Manager
         run: |
-          wget https://jmeter-plugins.org/get/ -O plugins-manager.jar
-          mv plugins-manager.jar apache-jmeter/lib/ext/
-
-      - name: Install Plugins
-        run: |
+          wget https://jmeter-plugins.org/get/ -O apache-jmeter/lib/ext/plugins-manager.jar
+          ls -la apache-jmeter/lib/ext/
+          chmod +x apache-jmeter/bin/PluginsManagerCMD.sh
           apache-jmeter/bin/PluginsManagerCMD.sh install \
           jpgc-standard \
           jpgc-dummy \
