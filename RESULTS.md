@@ -1,69 +1,87 @@
 # Results
 
-Findings from the load test run against `https://jsonplaceholder.typicode.com`, using [FINDINGS.md](FINDINGS.md) as the template.
-
 ## Run metadata
 
 | Field | Value |
 |---|---|
-| Date/time | 2026-08-18 22:07–22:12 BST |
-| Environment (config file used) | `scripts/config/perf.properties` |
-| Threads (concurrent users) | 25, ramped over 30s |
-| Ramp-up period | 30 s |
-| Duration / loops | 300 s scheduler duration (loop=-1) |
-| Target throughput | 25 req/s (`ConstantThroughputTimer`, no target specified by the task) |
+| Date/time | 2026-08-19 08:31–09:01 UTC |
+| Env Properties file | `scripts/config/perf.properties` |
+| User Load | 25 threads |
+| Ramp-up | 30 s |
+| Duration | 30 mins |
+| Target throughput | 50 req/s |
 | JMeter version | 5.6.3 |
-| Triggered by | Local CLI run (non-GUI): `results/results_20260818-220658.jtl`, dashboard at `results/dashboard/20260818-220658/` |
+| report link | https://rollno748.github.io/lead-assessment/ |
 
-## Key metrics
 
-Source: `results/dashboard/20260818-220658/statistics.json`. p90/p95/p99 below are JMeter's `pct1/pct2/pct3ResTime`.
+## Response time table
 
-| Endpoint | Samples | Error % | Avg (ms) | p90 (ms) | p95 (ms) | p99 (ms) | Max (ms) | Throughput (req/s) |
+| API | Samples | Error % | Avg (ms) | p90 (ms) | p95 (ms) | p99 (ms) | Max (ms) | Throughput (req/s) |
 |---|---|---|---|---|---|---|---|---|
-| GET /posts | 3627 | 0.00% | 87 | 192 | 341 | 670 | 21,131 | 12.09 |
-| GET /posts/{id} | 1806 | 0.00% | 56 | 104 | 127 | 383 | 2,540 | 6.04 |
-| GET /posts/{id}/comments | 722 | 0.14% | 106 | 201 | 284 | 626 | 21,126 | 2.41 |
-| POST /posts | 363 | 0.00% | 129 | 174 | 200 | 413 | 726 | 1.21 |
-| PUT /posts/{id} | 359 | 0.00% | 216 | 300 | 344 | 537 | 972 | 1.20 |
-| PATCH /posts/{id} | 358 | 0.00% | 129 | 169 | 197 | 436 | 928 | 1.20 |
-| DELETE /posts/{id} | 181 | 0.00% | 139 | 192 | 282 | 623 | 707 | 0.61 |
-| **Total** | **7416** | **0.01%** | **93** | **197** | **291** | **592** | **21,131** | **24.72** |
+| GET /posts | 43893 | 0.00% | 11 | 13 | 14 | 18 | 790 | 24.39 |
+| GET /posts/{id} | 21941 | 0.00% | 11 | 14 | 15 | 23 | 104 | 12.20 |
+| GET /posts/{id}/comments | 8775 | 0.00% | 12 | 15 | 17 | 30 | 231 | 4.88 |
+| POST /posts | 4389 | 0.00% | 16 | 17 | 18 | 24 | 295 | 2.44 |
+| PUT /posts/{id} | 4386 | 0.00% | 20 | 29 | 31 | 37 | 248 | 2.44 |
+| PATCH /posts/{id} | 4384 | 0.00% | 16 | 17 | 18 | 28 | 137 | 2.44 |
+| DELETE /posts/{id} | 2194 | 0.00% | 16 | 18 | 19 | 25 | 55 | 1.22 |
+| **Total** | **89962** | **0.00%** | **12** | **16** | **18** | **28** | **790** | **49.99** |
 
 ## Pass/fail against thresholds
 
-| Check | Threshold | Actual | Result |
+| Metrics | Threshold | Actual | Result |
 |---|---|---|---|
-| p95 response time | < 800 ms | 291 ms (Total) | ✅ Pass |
-| Error count | 0 | 1 (of 7,416 — 0.013%) | ❌ Fail (as currently gated in CI) |
+| p90th percentile response time | < 1 sec | 16 ms (Total) | ✅ Pass |
+| Error count | 0 | 0 (of 89,962) | ✅ Pass |
 
-## Bottleneck / risk
+## Bottleneck / Risk
 
-No throughput-driven bottleneck was observed at 25 concurrent users / ~24.7 req/s — every endpoint's p95 stayed well under the 800ms gate (Total p95 = 291ms), and mean latencies for GETs were under 110ms. This is expected: `jsonplaceholder.typicode.com` is a static/mock API with no real database or business logic behind it, so this test cannot surface genuine infrastructure bottlenecks (DB connection pools, GC pauses, downstream service calls) — anything observed here is either a client-side artifact of the load generator or the provider's shared, CDN-backed infrastructure.
+- The run was performed with 50 tps with no error (clean execution)
+- The response times were less than ~20 ms (although this is not a consistent behavior with the app). which mich shows a different result upon the resource avialability of teh mock server(which is publicly hosted).
+- We cannot run a stress test on this server to identify the capacity(publicly hosted shared server)
+- Good thing is, all the request has received an accepted connection, observed no httpresponseException
+- Observed no bottleneck when running with 25 users @50 tps 
+- All the reponse times were served well within 20 ms
+- As this is mock server, there will be no actual business logic implied to process it differently for each request. 
+- The POST call is not inserting the data acually to the application. 
+- It returns a static data, no matter teh load is, it is impossible to hit a bottleneck except the connection limit and rate limit if implied.
+- As there is no database involved in the app, it is hard to look on connection pooling issues, it acts exactly like static server or the provider's shared, CDN-backed infrastructure.
 
-The one concrete risk this run *did* surface: a single `GetCommentsByPostId` request failed with `NoHttpResponseException` (`jsonplaceholder.typicode.com:443 failed to respond`), and the Total/GetPosts/GetCommentsByPostId **max latency spiked to ~21.1 seconds** against averages of ~90-100ms — a >200x tail-latency outlier. Both point to the same underlying risk: transient connection drops / severe tail-latency spikes on the provider's shared infrastructure, invisible at p95/p99 but real at the max. Under the CI workflow's current gate (`errorCount > 0` fails the build), this single transient failure would have **failed the pipeline** even though the p95 SLA was comfortably met — worth revisiting the gate to tolerate a small error-rate threshold (e.g., <0.1%) rather than zero, since a hard zero-error gate against a third-party public API is prone to flaking on transient network blips outside your control.
-
-Because no throughput target was specified by the task, this result should be read as "no bottleneck found at this load," not "this is the system's ceiling" — headroom above 25 req/s is unverified.
 
 ## Scaling into a broader NFT strategy
 
-A single 5-minute, fixed-load run against a public mock API is a smoke test, not a full NFT strategy. Scaling this up would mean layering in soak tests (multi-hour steady load to catch leaks/degradation), spike and stress tests (to actually find a breaking point, since none was found here), and distributed load generation once concurrency needs exceed what a single JMeter instance can drive — combined with correlating client-side metrics against real backend observability (APM/traces) once this is pointed at an owned service instead of a black-box public API. Performance gates like the p95 check here should also move further left (run on every PR against a staging environment, not just post-merge) and use tolerant, not zero, error thresholds to avoid flaking on transient third-party network noise.
+- A single 30-minute, fixed-load run against a public mock API is a smoke test, not a full NFT strategy. 
+- Scaling this up would require multiple tests involving, Load, Stress and Soak.
+- Focussing on WLM to achieve the right distribution on the load will give a precise info on the resources needed.
+- Having access to monitoring might give a greater view on what is impacting teh resources and provides greater view on what went well/wromg.
+- If the app is deployed as self hosted service wither in VM/aws cluster, instead of a black-box public API, it is possible to analyse on more findings rather than the tool generated report.
+- Defining the threshold for the acceptance criteria might improve a CI heavily towards full automation point.
+
 
 ## Time tracking
 
 | Task | Est. | Actual |
 |---|---|---|
-| Script the test | 35 min | ~40 min |
-| Wire into CI/CD | 30 min | ~35 min |
-| Summarise findings | 15 min | ~25 min |
-| **Total** | **90 min** | **~100 min** |
+| Script the test |20 min | ~30 min |
+| Github configs |30 min | ~60 min |
+| CI yaml | 1 hours | ~2 hours |
+| Dry runs | 1 hours | ~ 3 hours |
+| Actual run | 30 mins | ~ 50 mins |
+| Summarise findings | 30 min | ~40 min |
+| **Total** | **230 min** | **~480 min** |
 
-> Per the ground rules: running over/under 90 min is fine. Actual time ran slightly over budget, mainly due to iterating on the CI threshold-gating step and re-running the test headlessly to capture real statistics (the original run had been done via the JMeter GUI, which doesn't produce `results/` artifacts).
+`It is achievable within 90 mins when the CI config and execution template is already built within the github CI.`
 
-## What's left / not done
+## Things to consider
 
-- **No throughput ceiling established** — task didn't specify a target, so this run only confirms the system is healthy at 25 req/s, not where it breaks. A stepped-load or stress test would be needed to find an actual limit.
-- **CI error-rate gate is binary (zero-tolerance)** — given the transient `NoHttpResponseException` seen in this run, the gate in [.github/workflows/jmeter-ci.yml](.github/workflows/jmeter-ci.yml) should likely tolerate a small error budget instead of failing on any single error.
-- **No response-time assertion inside the JMX itself** — p95 gating currently happens only in the CI step via `jq` against `statistics.json`, not as a JMeter Duration Assertion in the test plan.
-- **Single-machine, non-distributed load generation** — fine at 25 threads, would need distributed JMeter or a cloud load-testing service to push meaningfully higher.
-- **No correlation with server-side observability** — not possible against a third-party public API; noted here as a gap that would need to close before this is production-grade against an owned service.
+- **No throughput ceiling established**: task didn't specify a target beyond 50 concurrent users. It should specify the req/sec to achieve, so this run only confirms the system is healthy at 50 req/sec load. A stepped-load or stress test would be needed to find an actual limit(which can be performed on a owned hosted server).
+
+- **CI Threshold**: The current threshold set on teh CI is a standard set used across teh project. this might change according to the organixzation which needs to be updated.
+
+- **Load generation**: This test is conducted on single Github runner (free version), would need distributed JMeter or a cloud load-testing service to push meaningfully higher load to mimic production behavior.
+
+- **Monitoring**: Lack of monitoring, it is not possible against a third-party public API. It would be easier to do, If it is a self-hosted owned service.
+
+## Roadmap
+
+Roadmap for the load test on `https://jsonplaceholder.typicode.com` is written on, [ROADMAP.md](ROADMAP.md).
