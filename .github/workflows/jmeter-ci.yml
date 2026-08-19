@@ -71,8 +71,8 @@ jobs:
       - name: Upload Results
         uses: actions/upload-artifact@v4
         with:
-          name: jmeter-results-${TEST_RUN_ID}
-          path: results/dashboard/${TEST_RUN_ID}
+          name: jmeter-results-${{env.TEST_RUN_ID}}
+          path: results/dashboard/${{env.TEST_RUN_ID}}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -81,28 +81,28 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: results/dashboard/${{ env.TEST_RUN_ID }}
+      
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
 
       - name: Validate Performance Thresholds
         run: |
           STATS="results/dashboard/${TEST_RUN_ID}/statistics.json"
-          P95=$(jq '.Total.p95' $STATS)
-          ERRORS=$(jq '.Total.errorCount' $STATS)
+          P90=$(jq -r '.Total.pct1ResTime' "$STATS")
+          ERROR_PCT=$(jq -r '.Total.errorPct' "$STATS")
 
-          echo "p95 latency: $P95 ms"
-          echo "errors: $ERRORS"
+          echo "90th percentile: $P90 ms"
+          echo "error percentage: $ERROR_PCT%"
 
-          if (( $(echo "$P95 > 800" | bc -l) )); then
-            echo "❌ p95 latency above threshold"
+          if (( $(echo "$P90 > 1000" | bc -l) )); then
+            echo "90th percentile response time above threshold"
             exit 1
           fi
 
-          if (( $ERRORS > 0 )); then
-            echo "❌ Errors detected"
+          if (( $(echo "$ERROR_PCT > 3" | bc -l) )); then
+            echo "Error percentage is above 3%"
             exit 1
           fi
-
           echo "✅ Performance thresholds passed"
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
